@@ -1,67 +1,51 @@
 import ttkbootstrap as ttk
+import threading
+import tkinter as tk
 import tkinter.filedialog as filedialog
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.tableview import *
 from PIL import Image, ImageTk
 import csv
-import webbrowser
 
-class IMS:
-    def __init__(self, root):
-        # Init IMS Main Class
-        self.root = root
-        self.root.title("Pieps Warehouse v1.0")
-        self.root.maxsize(1400, 800)
-        self.root.minsize(1400, 800)
+
+class MainWindow(ttk.Window):
+    def __init__(self, *args, **kwargs):
+        ttk.Window.__init__(self, *args, **kwargs)
+        self.title("Piep´s Archery Warehouse")
+        self.geometry("1400x800")
+        self.minsize(1400, 800)
+        self.maxsize(1400, 800)
+        self.place_window_center()
 
         #Image
         self.image = Image.open("Logo.png").resize((250, 200))
         self.photo = ImageTk.PhotoImage(self.image)
 
-        
-        # Calculate Window size
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        window_width = 1400
-        window_height = 800
-        
-        # Calculate window position
-        x_coordinate = (screen_width / 2) - (window_width / 2)
-        y_coordinate = (screen_height / 2) - (window_height / 2)
-        
-        # Set Window posistion
-        self.root.geometry("%dx%d+%d+%d" % (window_width, window_height, x_coordinate, y_coordinate))
-        
-        # Set Variable for Class 
-        self.window_width = window_width
-        self.window_height = window_height
-        self.screen_width = screen_width
-        self.screen_height = screen_height
 
         # Data Store Vari
         self.data = []
         
 
         # Set Mainbar
-        self.navbar = ttk.Frame(root, padding="5 10", style="TButton", height=10)
+        self.navbar = ttk.Frame(self, padding="5 10", style="TButton", height=10)
         self.navbar.pack(side="top", fill="x")
 
         #info Label
         my_font = ttk.font.Font(size=15)
-        self.info_label = ttk.Label(root, text="Artikel", font=my_font)
+        self.info_label = ttk.Label(self, text="Artikel", font=my_font)
         self.info_label.pack(side="top")
 
         # Navbar Buttons
         self.navbar_button1 = ttk.Menubutton(self.navbar, text="Datei")
         self.navbar_button1.pack(side="left", padx=10)
         self.create_dropdown(self.navbar_button1)
-        self.navbar_button2 = ttk.Menubutton(self.navbar, text="Über Uns")
-        self.navbar_button2.pack(side="left", padx=10)
-        self.create_dropdown2(self.navbar_button2)
+
+        self.calc_button = ttk.Button(self.navbar, text="Zoll Rechner", command=self.init_secound_window)
+        self.calc_button.pack(side="left")
 
          # Add new item Frame
-        self.add_item_frame = ttk.Frame(root, padding="10")
+        self.add_item_frame = ttk.Frame(self, padding="10")
         self.add_item_frame.pack(side="left", fill="y")
 
         # Add new item Labels and Entry widgets
@@ -83,18 +67,21 @@ class IMS:
 
         ttk.Button(self.add_item_frame, text="Hinzufügen", command=self.add_new_item).grid(row=4, column=0, padx=5, pady=10)
         ttk.Button(self.add_item_frame, text="Speichern", command=self.quick_save).grid(row=4, column=1, padx=5, pady=10)
+        ttk.Button(self.add_item_frame, text="Bearbeiten", command=self.get_selection).grid(row=5, column=0, padx=5, pady=10)
+        ttk.Button(self.add_item_frame, text="Updaten", command=self.update_selelection).grid(row=5, column=1, padx=5, pady=10)
+
+
 
 
         # Add Table Frame
-        self.table_frame = ttk.Frame(root, padding="10")
+        self.table_frame = ttk.Frame(self, padding="10")
         self.table_frame.pack(side="right", fill="both", expand=True)
 
         # Create Table
         self.table = self.create_table()
-
     
         #photo placement
-        photo_label = ttk.Label(root, image=self.photo, text="by Freelance Archery", compound="top")
+        photo_label = ttk.Label(self, image=self.photo, text="by Freelance Archery", compound="top")
         photo_label.config()
         photo_label.place(x=0, y=550)
 
@@ -104,9 +91,6 @@ class IMS:
         else:
             # Create empty file
             self.save_data_to_file(self.file_path)
-
-    def openbrowser(self):
-        webbrowser.open_new_tab("www.freelance-archery.de")
 
 
         # Create and set function in Dropdown
@@ -118,12 +102,35 @@ class IMS:
 
         button["menu"] = dropdown
 
-        # Create Second dropdownset
-    def create_dropdown2(self, button):
-        dropdown = ttk.Menu(button, tearoff=False)
-        dropdown.add_command(label="www.freelance-archery.de", command=self.openbrowser)
+    def init_secound_window(self):
+        second_window_thread = threading.Thread(target=SecondWindow)
+        second_window_thread.start()
 
-        button["menu"] = dropdown
+    def get_selection(self):
+        selection = self.table.view.selection()
+        items = self.table.view.item(selection)
+        values = items["values"]
+        self.artikel_entry.insert(tk.END, f'{values[0]}')
+        self.bezeichnung_entry.insert(tk.END, f'{values[1]}')
+        self.menge_entry.insert(tk.END, f'{values[2]}')
+        self.artikelnummer_entry.insert(tk.END, f'{values[3]}')
+
+    def update_selelection(self):
+        iids = self.table.view.selection()
+        if len(iids) > 0:
+            prev_item = self.table.view.prev(iids[0])
+            self.table.delete_rows(iids=iids)
+            self.table.view.focus(prev_item)
+            self.table.view.selection_set(prev_item)
+            self.add_new_item()
+
+        toast = ToastNotification(
+        title="Übermittlung erfolgreich",
+        message="Daten erfolgreich Aktualisiert",
+        duration=3000
+        )
+        toast.show_toast()
+
 
         # Create Tabel
     def create_table(self):
@@ -134,7 +141,7 @@ class IMS:
             {"text": "Artikelnummer", "width": 276},
             ]
         self.table = Tableview(
-            master=self.root,
+            master=self,
             rowdata=self.data,
             coldata=coldata,
             paginated=True,
@@ -257,12 +264,93 @@ class IMS:
 
         # Exit App
     def exit_programm(self):
-        self.root.destroy()
+        self.self.destroy()
+
+    
+        
+
+
+class SecondWindow(ttk.Toplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("400x450")
+        self.title("Zoll/Cm Calculator")
+        self.minsize(400, 430)
+        self.maxsize(400, 430)
+        self.place_window_center()
+
+        self.font = ttk.font.Font(size=15)
+
+        self.head = ttk.Label(self, background="orange")
+        self.head.pack(side="top", fill="x")
+
+        self.head_text = ttk.Label(self.head, text="Zoll/CM Rechner", font=self.font, background="orange", foreground="black")
+        self.head_text.pack(side="top")
+
+        self.entry_frame = ttk.Frame(self)
+        self.entry_frame.pack(side='top')
+
+
+        ttk.Label(self.entry_frame).grid(row=0, column=1)
+        self.output_widget = ttk.Text(self.entry_frame, font=("Helvetica", 25), height=1, width=10, wrap=tk.WORD)
+        self.output_widget.grid(row=0, column=1, pady=20)
+
+        ttk.Label(self.entry_frame, text='Gib einen wert in cm ein').grid(row=1, column=1)
+        self.entry_zoll = ttk.Entry(self.entry_frame)
+        self.entry_zoll.grid(row=2, column=1, pady=5)
+
+        ttk.Label(self.entry_frame, text='Gib einen wert in Zoll ein').grid(row=4, column=1)
+        self.entry_cm = ttk.Entry(self.entry_frame)
+        self.entry_cm.grid(row=5, column=1, pady=5)
+
+        ttk.Label(self.entry_frame, text='Gib deine Bogenlänge an um die Sehnenlänge in Zoll zu erhalten').grid(row=7, column=1)
+        self.entry_bow = ttk.Entry(self.entry_frame)
+        self.entry_bow.grid(row=8, column=1, pady=5)
+
+        ttk.Button(self.entry_frame, text='Berechnen', command=self.output_Zoll).grid(row=3, column=1, pady=5)
+        ttk.Button(self.entry_frame, text='Berechnen', command=self.output_cm).grid(row=6, column=1, pady=5)
+        ttk.Button(self.entry_frame, text='Berechnen', command=self.output_bow).grid(row=9, column=1, pady=5)
+
+
+    def data_get_bow(self):
+        bow = self.entry_bow.get()
+        bow = float(bow) - 3
+        self.bow_result = bow
+
+    def output_bow(self):
+        self.data_get_bow()
+        self.output_widget.delete("1.0", tk.END)
+        self.output_widget.insert(ttk.END, f'{self.bow_result} Zoll')  
+        self.output_widget.configure(fg="yellow")
+        self.output_widget.see(ttk.END)  
+
+    def data_get_cm(self):
+        cm = self.entry_cm.get()
+        cm = round(float(cm) / 0.3937, 2)
+        self.cm_result = cm
+
+    def output_cm(self):
+        self.data_get_cm()
+        self.output_widget.delete("1.0", tk.END)
+        self.output_widget.insert(ttk.END, f'{self.cm_result} cm')  
+        self.output_widget.configure(fg="yellow")
+        self.output_widget.see(ttk.END)
+
+
+    def data_get_Zoll(self):
+        zoll = self.entry_zoll.get()
+        zoll = round(float(zoll) * 0.3937, 2)
+        self.zoll_result = zoll
+
+    def output_Zoll(self):
+        self.data_get_Zoll()
+        self.output_widget.delete("1.0", tk.END)
+        self.output_widget.insert(ttk.END, f'{self.zoll_result} Zoll')  
+        self.output_widget.configure(fg="yellow")
+        self.output_widget.see(ttk.END)  
 
 
 
-# Main Root Function
-root = ttk.Window(themename="solar")
-main = IMS(root)
-
-root.mainloop()
+if __name__ == '__main__':
+    app = MainWindow(themename="solar")
+    app.mainloop()
