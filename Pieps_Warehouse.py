@@ -264,7 +264,7 @@ class MainWindow(ttk.Window):
 
         # Exit App
     def exit_programm(self):
-        self.self.destroy()
+        self.destroy()
 
     
         
@@ -281,10 +281,10 @@ class SecondWindow(ttk.Toplevel):
 
         self.font = ttk.font.Font(size=15)
 
-        self.head = ttk.Label(self, background="orange")
+        self.head = ttk.Label(self, background="cornflowerblue")
         self.head.pack(side="top", fill="x")
 
-        self.head_text = ttk.Label(self.head, text="Zoll/CM Rechner", font=self.font, background="orange", foreground="black")
+        self.head_text = ttk.Label(self.head, text="Zoll/CM Rechner", font=self.font, background="cornflowerblue", foreground="black")
         self.head_text.pack(side="top")
 
         self.entry_frame = ttk.Frame(self)
@@ -352,5 +352,5 @@ class SecondWindow(ttk.Toplevel):
 
 
 if __name__ == '__main__':
-    app = MainWindow(themename="solar")
+    app = MainWindow(themename="superhero")
     app.mainloop()
